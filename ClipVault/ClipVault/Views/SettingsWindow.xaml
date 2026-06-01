@@ -1,0 +1,87 @@
+<Window x:Class="ClipVault.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.modernwpf.com/2019"
+        ui:WindowHelper.UseModernWindowStyle="True"
+        Title="设置 — ClipVault"
+        Width="500" Height="420"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="False">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" VerticalAlignment="Top">
+
+            <!-- Auto start -->
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="开机自动启动 ClipVault" VerticalAlignment="Center"/>
+                <ui:ToggleSwitch Grid.Column="1" IsOn="{Binding AutoStart}"/>
+            </Grid>
+
+            <!-- Hotkey -->
+            <TextBlock Text="全局快捷键" Margin="0,0,0,6"/>
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0" Text="{Binding GlobalHotkey}" Margin="0,0,8,0"
+                         IsEnabled="{Binding GlobalHotkeyEnabled}"/>
+                <CheckBox Grid.Column="1" Content="启用" IsChecked="{Binding GlobalHotkeyEnabled}"
+                          VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- Max records -->
+            <TextBlock Text="历史记录上限" Margin="0,0,0,6"/>
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <ui:NumberBox Grid.Column="0"
+                              Value="{Binding MaxRecords, Mode=TwoWay}"
+                              Minimum="100" Maximum="2000" SpinButtonPlacementMode="Compact"/>
+                <TextBlock Grid.Column="1" Text="条（100 ~ 2000）"
+                           VerticalAlignment="Center" Margin="10,0,0,0"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+            </Grid>
+
+            <!-- Database path -->
+            <TextBlock Text="数据库文件路径" Margin="0,0,0,6"/>
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0" Text="{Binding DatabasePath}" Margin="0,0,8,0" IsReadOnly="True"/>
+                <Button Grid.Column="1" Content="浏览..." Click="BrowseDb_Click"/>
+            </Grid>
+
+            <!-- Export / Import -->
+            <TextBlock Text="数据管理" Margin="0,0,0,6"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                <Button Content="导出为 JSON..." Margin="0,0,8,0" Click="Export_Click"/>
+                <Button Content="从 JSON 导入..." Click="Import_Click"/>
+            </StackPanel>
+
+            <!-- Clear all -->
+            <Button Content="清空所有记录..." Foreground="Red" Click="ClearAll_Click"/>
+        </StackPanel>
+
+        <!-- Bottom buttons -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="取消" Margin="0,0,8,0" Click="Cancel_Click" Width="80"/>
+            <Button Content="保存" Width="80" Click="Save_Click"
+                    Style="{StaticResource AccentButtonStyle}"/>
+        </StackPanel>
+    </Grid>
+</Window>
