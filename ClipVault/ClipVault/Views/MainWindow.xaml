@@ -4,7 +4,7 @@
         xmlns:ui="http://schemas.modernwpf.com/2019"
         xmlns:vm="clr-namespace:ClipVault.ViewModels"
         ui:WindowHelper.UseModernWindowStyle="True"
-        Title="ClipVault"
+        Title="{Binding WindowTitle}"
         Width="{Binding WindowWidth, Mode=TwoWay}"
         Height="{Binding WindowHeight, Mode=TwoWay}"
         MinWidth="320" MinHeight="400"
@@ -34,6 +34,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -45,10 +46,13 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <ui:AutoSuggestBox Grid.Column="0"
-                               PlaceholderText="搜索..."
-                               Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                               Margin="0,0,6,0"/>
+            <!-- 普通 TextBox，按 Enter 搜索，Esc 清空 -->
+            <TextBox Grid.Column="0"
+                     x:Name="SearchBox"
+                     Text="{Binding SearchInputText, UpdateSourceTrigger=PropertyChanged}"
+                     ui:ControlHelper.PlaceholderText="搜索... (按 Enter 确认)"
+                     Margin="0,0,6,0"
+                     KeyDown="SearchBox_KeyDown"/>
 
             <ComboBox Grid.Column="1" Margin="0,0,6,0" Width="100"
                       SelectedValuePath="Tag"
@@ -68,15 +72,28 @@
             </ComboBox>
         </Grid>
 
+        <!-- Favorites mode banner -->
+        <Border Grid.Row="1"
+                Background="{DynamicResource SystemAccentColorBrush}"
+                Padding="12,4"
+                Visibility="{Binding FavoritesOnly, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Grid>
+                <TextBlock Text="★ 收藏夹" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <Button Content="返回全部" HorizontalAlignment="Right"
+                        Padding="8,2" FontSize="12"
+                        Click="ExitFavorites_Click"/>
+            </Grid>
+        </Border>
+
         <!-- Status row -->
-        <TextBlock Grid.Row="1"
+        <TextBlock Grid.Row="2"
                    Text="{Binding StatusText}"
                    Margin="12,0,12,4"
                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                    FontSize="12"/>
 
         <!-- List -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
             <Grid>
                 <!-- Empty state -->
                 <TextBlock Text="{Binding EmptyMessage}"
@@ -97,7 +114,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:ClipItemViewModel}">
-                            <Border>
+                            <Border Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
                                 <Border.Style>
                                     <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
                                         <Style.Triggers>
@@ -109,11 +126,51 @@
                                     </Style>
                                 </Border.Style>
 
+                                <!-- 右键菜单 -->
+                                <Border.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="复制"
+                                                  Command="{Binding PlacementTarget.Tag.CopyItemCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding}"/>
+                                        <Separator/>
+                                        <MenuItem Command="{Binding PlacementTarget.Tag.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding}">
+                                            <MenuItem.Style>
+                                                <Style TargetType="MenuItem">
+                                                    <Setter Property="Header" Value="  收藏"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+                                                            <Setter Property="Header" Value="  取消收藏"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </MenuItem.Style>
+                                        </MenuItem>
+                                        <MenuItem Command="{Binding PlacementTarget.Tag.TogglePinnedCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding}">
+                                            <MenuItem.Style>
+                                                <Style TargetType="MenuItem">
+                                                    <Setter Property="Header" Value="  置顶"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                                                            <Setter Property="Header" Value="  取消置顶"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </MenuItem.Style>
+                                        </MenuItem>
+                                        <Separator/>
+                                        <MenuItem Header="删除"
+                                                  Foreground="Red"
+                                                  Command="{Binding PlacementTarget.Tag.DeleteItemCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding}"/>
+                                    </ContextMenu>
+                                </Border.ContextMenu>
+
                                 <StackPanel>
                                     <!-- Header row -->
-                                    <Grid>
+                                    <Grid Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
@@ -124,13 +181,8 @@
                                         <TextBlock Grid.Column="0" Text="📌" FontSize="12" Margin="0,0,4,0"
                                                    Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
-                                        <!-- Type label -->
-                                        <Border Grid.Column="1" Style="{StaticResource TypeLabelStyle}">
-                                            <TextBlock Text="{Binding TypeLabel}" FontSize="11"/>
-                                        </Border>
-
                                         <!-- Preview text (click = copy + close) -->
-                                        <TextBlock Grid.Column="2"
+                                        <TextBlock Grid.Column="1"
                                                    Text="{Binding Preview}"
                                                    MaxHeight="40"
                                                    TextWrapping="Wrap"
@@ -139,7 +191,7 @@
                                                    MouseLeftButtonUp="PreviewText_Click"/>
 
                                         <!-- Relative time -->
-                                        <TextBlock Grid.Column="3"
+                                        <TextBlock Grid.Column="2"
                                                    Text="{Binding RelativeTime}"
                                                    FontSize="11"
                                                    Margin="6,0,4,0"
@@ -147,7 +199,7 @@
                                                    VerticalAlignment="Center"/>
 
                                         <!-- Expand button -->
-                                        <Button Grid.Column="4"
+                                        <Button Grid.Column="3"
                                                 Content="⋯"
                                                 Background="Transparent"
                                                 BorderThickness="0"

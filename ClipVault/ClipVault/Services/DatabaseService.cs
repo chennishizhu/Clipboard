@@ -73,10 +73,12 @@ public class DatabaseService : IDisposable
         cmd.ExecuteNonQuery();
     }
 
-    public List<ClipItem> Query(string? keyword, string? timeFilter, string? typeFilter)
+    public List<ClipItem> Query(string? keyword, string? timeFilter, string? typeFilter, bool favoritesOnly = false)
     {
         using var cmd = _connection!.CreateCommand();
         var where = new List<string>();
+
+        if (favoritesOnly) where.Add("is_favorite = 1");
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {

@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using Hardcodet.Wpf.TaskbarNotification;
+using ModernWpf;
 
 namespace ClipVault.Views;
 
@@ -8,6 +9,7 @@ public class TrayIcon : IDisposable
 {
     private readonly TaskbarIcon _taskbarIcon;
     private readonly MainWindow _mainWindow;
+    private MenuItem _darkModeItem = null!;
 
     public event Action? ExitRequested;
 
@@ -15,11 +17,7 @@ public class TrayIcon : IDisposable
     {
         _mainWindow = mainWindow;
 
-        _taskbarIcon = new TaskbarIcon
-        {
-            ToolTipText = "ClipVault",
-            // Icon will be loaded from resource; fallback to default if not found
-        };
+        _taskbarIcon = new TaskbarIcon { ToolTipText = "ClipVault" };
 
         try
         {
@@ -40,26 +38,56 @@ public class TrayIcon : IDisposable
         var openItem = new MenuItem { Header = "打开主窗口" };
         openItem.Click += (_, _) => _mainWindow.ShowAndActivate();
 
+        var favItem = new MenuItem { Header = "查看收藏" };
+        favItem.Click += (_, _) => _mainWindow.ShowFavorites();
+
+        // Dark mode toggle — reflect current setting
+        bool isDark = App.Settings.Settings.Theme == "Dark";
+        _darkModeItem = new MenuItem
+        {
+            Header = isDark ? "切换到浅色模式" : "切换到深色模式",
+            IsCheckable = false
+        };
+        _darkModeItem.Click += (_, _) => ToggleTheme();
+
         var settingsItem = new MenuItem { Header = "设置" };
         settingsItem.Click += (_, _) => OpenSettings();
 
         var pauseItem = new MenuItem { Header = "暂停监听", IsCheckable = true };
-        pauseItem.Click += (_, _) =>
-        {
-            App.Clipboard.IsPaused = pauseItem.IsChecked;
-        };
-
-        var separator = new Separator();
+        pauseItem.Click += (_, _) => App.Clipboard.IsPaused = pauseItem.IsChecked;
 
         var exitItem = new MenuItem { Header = "退出" };
         exitItem.Click += (_, _) => ExitRequested?.Invoke();
 
         menu.Items.Add(openItem);
+        menu.Items.Add(favItem);
+        menu.Items.Add(new Separator());
+        menu.Items.Add(_darkModeItem);
         menu.Items.Add(settingsItem);
         menu.Items.Add(pauseItem);
-        menu.Items.Add(separator);
+        menu.Items.Add(new Separator());
         menu.Items.Add(exitItem);
         return menu;
+    }
+
+    private void ToggleTheme()
+    {
+        var settings = App.Settings.Settings;
+        bool goingDark = settings.Theme != "Dark";
+        settings.Theme = goingDark ? "Dark" : "Light";
+        App.Settings.Save();
+        ApplyTheme(settings.Theme);
+        _darkModeItem.Header = goingDark ? "切换到浅色模式" : "切换到深色模式";
+    }
+
+    public static void ApplyTheme(string theme)
+    {
+        ThemeManager.Current.ApplicationTheme = theme switch
+        {
+            "Dark" => ApplicationTheme.Dark,
+            "Light" => ApplicationTheme.Light,
+            _ => null // System
+        };
     }
 
     private void ToggleMainWindow()

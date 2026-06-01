@@ -11,4 +11,5 @@ public class AppSettings
     public double? WindowTop { get; set; }
     public double WindowWidth { get; set; } = 400;
     public double WindowHeight { get; set; } = 600;
+    public string Theme { get; set; } = "System"; // "Light" | "Dark" | "System"
 }

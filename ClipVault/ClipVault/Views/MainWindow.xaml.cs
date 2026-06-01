@@ -24,6 +24,17 @@ public partial class MainWindow : Window
 
     public void ShowAndActivate()
     {
+        _vm.FavoritesOnly = false;
+        _vm.Refresh();
+        Show();
+        WindowState = WindowState.Normal;
+        Activate();
+        Focus();
+    }
+
+    public void ShowFavorites()
+    {
+        _vm.FavoritesOnly = true;
         _vm.Refresh();
         Show();
         WindowState = WindowState.Normal;
@@ -38,7 +49,6 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
-        // Save window position and size before hiding
         var s = App.Settings.Settings;
         s.WindowLeft = Left;
         s.WindowTop = Top;
@@ -54,9 +64,10 @@ public partial class MainWindow : Window
     {
         if (e.Key == Key.Escape)
         {
-            if (!string.IsNullOrEmpty(_vm.SearchText))
+            if (!string.IsNullOrEmpty(_vm.SearchInputText))
             {
-                _vm.SearchText = string.Empty;
+                _vm.ClearSearch();
+                SearchBox.Text = string.Empty;
                 e.Handled = true;
             }
             else
@@ -65,6 +76,28 @@ public partial class MainWindow : Window
                 e.Handled = true;
             }
         }
+    }
+
+    // Enter 触发搜索，Esc 清空
+    private void SearchBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            _vm.ExecuteSearch();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            _vm.ClearSearch();
+            SearchBox.Text = string.Empty;
+            e.Handled = true;
+        }
+    }
+
+    private void ExitFavorites_Click(object sender, RoutedEventArgs e)
+    {
+        _vm.FavoritesOnly = false;
+        _vm.Refresh();
     }
 
     private void PreviewText_Click(object sender, MouseButtonEventArgs e)

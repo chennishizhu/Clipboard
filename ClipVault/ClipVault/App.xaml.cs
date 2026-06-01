@@ -35,6 +35,9 @@ public partial class App : Application
         Settings.Load();
         Database.Initialize(Settings.Settings.DatabasePath);
 
+        // ── Apply saved theme ─────────────────────────────────────
+        TrayIcon.ApplyTheme(Settings.Settings.Theme);
+
         // ── Create main window (hidden) ───────────────────────────
         MainVM = new MainViewModel(Database, Clipboard);
         _mainWindow = new MainWindow(MainVM);

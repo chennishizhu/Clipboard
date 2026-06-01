@@ -15,8 +15,8 @@ public class MainViewModel : ViewModelBase
         _db = db;
         _clipboard = clipboard;
 
-        SearchCommand = new RelayCommand(Refresh);
-        ClearSearchCommand = new RelayCommand(() => { SearchText = string.Empty; Refresh(); });
+        SearchCommand = new RelayCommand(ExecuteSearch);
+        ClearSearchCommand = new RelayCommand(ClearSearch);
         CopyItemCommand = new RelayCommand<ClipItemViewModel>(CopyItem);
         ToggleFavoriteCommand = new RelayCommand<ClipItemViewModel>(ToggleFavorite);
         TogglePinnedCommand = new RelayCommand<ClipItemViewModel>(TogglePinned);
@@ -26,13 +26,23 @@ public class MainViewModel : ViewModelBase
         Refresh();
     }
 
-    // ── Filter state ──────────────────────────────────────────────
+    // ── Search input (what user is typing, not yet committed) ──────
+
+    private string _searchInputText = string.Empty;
+    /// <summary>双向绑定搜索框文字，仅用于显示；按 Enter 后才真正搜索。</summary>
+    public string SearchInputText
+    {
+        get => _searchInputText;
+        set => SetField(ref _searchInputText, value);
+    }
+
+    // ── Committed search text (drives actual query) ────────────────
 
     private string _searchText = string.Empty;
     public string SearchText
     {
         get => _searchText;
-        set { if (SetField(ref _searchText, value)) Refresh(); }
+        private set => SetField(ref _searchText, value);
     }
 
     private string _timeFilter = "all";
@@ -48,6 +58,15 @@ public class MainViewModel : ViewModelBase
         get => _typeFilter;
         set { if (SetField(ref _typeFilter, value)) Refresh(); }
     }
+
+    private bool _favoritesOnly;
+    public bool FavoritesOnly
+    {
+        get => _favoritesOnly;
+        set { if (SetField(ref _favoritesOnly, value)) { OnPropertyChanged(nameof(WindowTitle)); Refresh(); } }
+    }
+
+    public string WindowTitle => FavoritesOnly ? "ClipVault — 收藏" : "ClipVault";
 
     // ── Data ──────────────────────────────────────────────────────
 
@@ -72,9 +91,11 @@ public class MainViewModel : ViewModelBase
         : $"共 {TotalCount} 条";
 
     public bool HasNoItems => Items.Count == 0;
-    public string EmptyMessage => string.IsNullOrWhiteSpace(SearchText) && TimeFilter == "all" && TypeFilter == "all"
-        ? "暂无记录"
-        : "未找到匹配内容";
+    public string EmptyMessage => FavoritesOnly && Items.Count == 0
+        ? "暂无收藏记录"
+        : (string.IsNullOrWhiteSpace(SearchText) && TimeFilter == "all" && TypeFilter == "all"
+            ? "暂无记录"
+            : "未找到匹配内容");
 
     // ── Commands ──────────────────────────────────────────────────
 
@@ -86,7 +107,24 @@ public class MainViewModel : ViewModelBase
     public ICommand DeleteItemCommand { get; }
     public ICommand ToggleExpandCommand { get; }
 
-    // ── Actions ───────────────────────────────────────────────────
+    // ── Search actions ────────────────────────────────────────────
+
+    /// <summary>按 Enter 提交搜索。</summary>
+    public void ExecuteSearch()
+    {
+        SearchText = SearchInputText;
+        Refresh();
+    }
+
+    /// <summary>清空搜索框并刷新列表。</summary>
+    public void ClearSearch()
+    {
+        SearchInputText = string.Empty;
+        SearchText = string.Empty;
+        Refresh();
+    }
+
+    // ── Data actions ──────────────────────────────────────────────
 
     public void Refresh()
     {
@@ -94,9 +132,9 @@ public class MainViewModel : ViewModelBase
         var time = TimeFilter == "all" ? null : TimeFilter;
         var type = TypeFilter == "all" ? null : TypeFilter;
 
-        var rows = _db.Query(kw, time, type);
+        var rows = _db.Query(kw, time, type, FavoritesOnly);
         TotalCount = _db.GetTotalCount();
-        IsFiltered = kw != null || time != null || type != null;
+        IsFiltered = kw != null || time != null || type != null || FavoritesOnly;
 
         Items.Clear();
         foreach (var r in rows)
@@ -154,7 +192,6 @@ public class MainViewModel : ViewModelBase
     private void ToggleExpand(ClipItemViewModel? vm)
     {
         if (vm == null) return;
-        // Collapse all others first
         foreach (var item in Items)
             if (item != vm) item.IsExpanded = false;
         vm.IsExpanded = !vm.IsExpanded;
