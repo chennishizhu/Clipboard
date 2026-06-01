@@ -38,9 +38,6 @@ public class TrayIcon : IDisposable
         var openItem = new MenuItem { Header = "打开主窗口" };
         openItem.Click += (_, _) => _mainWindow.ShowAndActivate();
 
-        var favItem = new MenuItem { Header = "查看收藏" };
-        favItem.Click += (_, _) => _mainWindow.ShowFavorites();
-
         // Dark mode toggle — reflect current setting
         bool isDark = App.Settings.Settings.Theme == "Dark";
         _darkModeItem = new MenuItem
@@ -60,7 +57,6 @@ public class TrayIcon : IDisposable
         exitItem.Click += (_, _) => ExitRequested?.Invoke();
 
         menu.Items.Add(openItem);
-        menu.Items.Add(favItem);
         menu.Items.Add(new Separator());
         menu.Items.Add(_darkModeItem);
         menu.Items.Add(settingsItem);

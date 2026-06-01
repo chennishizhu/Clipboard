@@ -24,8 +24,11 @@ public partial class MainWindow : Window
 
     public void ShowAndActivate()
     {
-        _vm.FavoritesOnly = false;
-        _vm.Refresh();
+        // Reset type filter to "all" (clears favorites mode too)
+        if (_vm.TypeFilter == "favorites")
+            _vm.TypeFilter = "all";
+        else
+            _vm.Refresh();
         Show();
         WindowState = WindowState.Normal;
         Activate();
@@ -34,8 +37,7 @@ public partial class MainWindow : Window
 
     public void ShowFavorites()
     {
-        _vm.FavoritesOnly = true;
-        _vm.Refresh();
+        _vm.TypeFilter = "favorites";
         Show();
         WindowState = WindowState.Normal;
         Activate();
@@ -96,8 +98,7 @@ public partial class MainWindow : Window
 
     private void ExitFavorites_Click(object sender, RoutedEventArgs e)
     {
-        _vm.FavoritesOnly = false;
-        _vm.Refresh();
+        _vm.TypeFilter = "all";
     }
 
     private void PreviewText_Click(object sender, MouseButtonEventArgs e)

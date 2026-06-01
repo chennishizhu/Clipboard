@@ -56,17 +56,23 @@ public class MainViewModel : ViewModelBase
     public string TypeFilter
     {
         get => _typeFilter;
-        set { if (SetField(ref _typeFilter, value)) Refresh(); }
+        set
+        {
+            if (!SetField(ref _typeFilter, value)) return;
+            // "favorites" is a special pseudo-type: treat as favorites-only mode
+            FavoritesOnly = value == "favorites";
+            Refresh();
+        }
     }
 
     private bool _favoritesOnly;
     public bool FavoritesOnly
     {
         get => _favoritesOnly;
-        set { if (SetField(ref _favoritesOnly, value)) { OnPropertyChanged(nameof(WindowTitle)); Refresh(); } }
+        set { if (SetField(ref _favoritesOnly, value)) OnPropertyChanged(nameof(WindowTitle)); }
     }
 
-    public string WindowTitle => FavoritesOnly ? "ClipVault — 收藏" : "ClipVault";
+    public string WindowTitle => FavoritesOnly ? "ClipVault — ★ 收藏" : "ClipVault";
 
     // ── Data ──────────────────────────────────────────────────────
 
@@ -130,7 +136,8 @@ public class MainViewModel : ViewModelBase
     {
         var kw = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText;
         var time = TimeFilter == "all" ? null : TimeFilter;
-        var type = TypeFilter == "all" ? null : TypeFilter;
+        // "favorites" is handled via FavoritesOnly flag, not passed as type filter
+        var type = (TypeFilter == "all" || TypeFilter == "favorites") ? null : TypeFilter;
 
         var rows = _db.Query(kw, time, type, FavoritesOnly);
         TotalCount = _db.GetTotalCount();

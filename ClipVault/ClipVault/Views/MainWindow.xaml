@@ -12,27 +12,35 @@
         KeyDown="Window_KeyDown">
 
     <Window.Resources>
-        <!-- Type label style -->
-        <Style x:Key="TypeLabelStyle" TargetType="Border">
-            <Setter Property="CornerRadius" Value="3"/>
-            <Setter Property="Padding" Value="4,1"/>
-            <Setter Property="Margin" Value="0,0,6,0"/>
-            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumBrush}"/>
+        <!-- 分割线颜色：提高到 35% 透明度，肉眼可见 -->
+        <SolidColorBrush x:Key="DividerBrush" Color="#59808080"/>
+        <!-- 置顶强调线颜色 -->
+        <SolidColorBrush x:Key="PinAccentBrush" Color="#0078D7"/>
+
+        <!-- 外层容器样式：底边分割线 -->
+        <Style x:Key="RowWrapperStyle" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{StaticResource DividerBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="Background" Value="Transparent"/>
         </Style>
 
-        <!-- Card style -->
-        <Style x:Key="CardStyle" TargetType="Border">
-            <Setter Property="Margin" Value="8,4"/>
-            <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltMediumBrush}"/>
+        <!-- 内层条目样式：左侧置顶蓝线（默认透明） -->
+        <Style x:Key="RowItemStyle" TargetType="Border">
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="3,0,0,0"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                    <Setter Property="BorderBrush" Value="{StaticResource PinAccentBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
     </Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -46,11 +54,10 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <!-- 普通 TextBox，按 Enter 搜索，Esc 清空 -->
             <TextBox Grid.Column="0"
                      x:Name="SearchBox"
                      Text="{Binding SearchInputText, UpdateSourceTrigger=PropertyChanged}"
-                     ui:ControlHelper.PlaceholderText="搜索... (按 Enter 确认)"
+                     ui:ControlHelper.PlaceholderText="搜索... (Enter 确认)"
                      Margin="0,0,6,0"
                      KeyDown="SearchBox_KeyDown"/>
 
@@ -63,37 +70,27 @@
                 <ComboBoxItem Content="最近30天" Tag="30days"/>
             </ComboBox>
 
+            <!-- 类型下拉，含收藏入口 -->
             <ComboBox Grid.Column="2" Width="90"
                       SelectedValuePath="Tag"
                       SelectedValue="{Binding TypeFilter}">
                 <ComboBoxItem Content="全部类型" Tag="all" IsSelected="True"/>
                 <ComboBoxItem Content="仅文本" Tag="text"/>
                 <ComboBoxItem Content="仅链接" Tag="link"/>
+                <Separator/>
+                <ComboBoxItem Content="★ 收藏" Tag="favorites"/>
             </ComboBox>
         </Grid>
 
-        <!-- Favorites mode banner -->
-        <Border Grid.Row="1"
-                Background="{DynamicResource SystemAccentColorBrush}"
-                Padding="12,4"
-                Visibility="{Binding FavoritesOnly, Converter={StaticResource BoolToVisibilityConverter}}">
-            <Grid>
-                <TextBlock Text="★ 收藏夹" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                <Button Content="返回全部" HorizontalAlignment="Right"
-                        Padding="8,2" FontSize="12"
-                        Click="ExitFavorites_Click"/>
-            </Grid>
-        </Border>
-
         <!-- Status row -->
-        <TextBlock Grid.Row="2"
+        <TextBlock Grid.Row="1"
                    Text="{Binding StatusText}"
                    Margin="12,0,12,4"
                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                    FontSize="12"/>
 
         <!-- List -->
-        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
             <Grid>
                 <!-- Empty state -->
                 <TextBlock Text="{Binding EmptyMessage}"
@@ -114,19 +111,11 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:ClipItemViewModel}">
-                            <Border Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
-                                <Border.Style>
-                                    <Style TargetType="Border" BasedOn="{StaticResource CardStyle}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsPinned}" Value="True">
-                                                <Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColorBrush}"/>
-                                                <Setter Property="BorderThickness" Value="2,0,0,0"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Border.Style>
+                            <!-- 外层：底部分割线 -->
+                            <Border Style="{StaticResource RowWrapperStyle}"
+                                    Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
 
-                                <!-- 右键菜单 -->
+                                <!-- 右键菜单挂在外层 Border 上 -->
                                 <Border.ContextMenu>
                                     <ContextMenu>
                                         <MenuItem Header="复制"
@@ -167,18 +156,22 @@
                                     </ContextMenu>
                                 </Border.ContextMenu>
 
+                                <!-- 内层：左侧置顶蓝线 -->
+                                <Border Style="{StaticResource RowItemStyle}">
                                 <StackPanel>
                                     <!-- Header row -->
-                                    <Grid Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+                                    <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
 
                                         <!-- Pin icon -->
-                                        <TextBlock Grid.Column="0" Text="📌" FontSize="12" Margin="0,0,4,0"
+                                        <TextBlock Grid.Column="0" Text="📌" FontSize="11" Margin="0,0,5,0"
+                                                   VerticalAlignment="Center"
                                                    Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
                                         <!-- Preview text (click = copy + close) -->
@@ -187,30 +180,39 @@
                                                    MaxHeight="40"
                                                    TextWrapping="Wrap"
                                                    TextTrimming="CharacterEllipsis"
+                                                   VerticalAlignment="Center"
                                                    ToolTip="{Binding Content}"
                                                    MouseLeftButtonUp="PreviewText_Click"/>
 
+                                        <!-- Favorite star (always visible when favorited) -->
+                                        <TextBlock Grid.Column="2" Text="★" FontSize="11"
+                                                   Foreground="#FFD700"
+                                                   Margin="4,0,2,0"
+                                                   VerticalAlignment="Center"
+                                                   Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
                                         <!-- Relative time -->
-                                        <TextBlock Grid.Column="2"
+                                        <TextBlock Grid.Column="3"
                                                    Text="{Binding RelativeTime}"
                                                    FontSize="11"
-                                                   Margin="6,0,4,0"
+                                                   Margin="4,0,4,0"
                                                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                                                    VerticalAlignment="Center"/>
 
                                         <!-- Expand button -->
-                                        <Button Grid.Column="3"
+                                        <Button Grid.Column="4"
                                                 Content="⋯"
                                                 Background="Transparent"
                                                 BorderThickness="0"
                                                 Padding="4,0"
+                                                VerticalAlignment="Center"
                                                 Command="{Binding DataContext.ToggleExpandCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                 CommandParameter="{Binding}"/>
                                     </Grid>
 
                                     <!-- Expanded detail panel -->
                                     <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibilityConverter}}"
-                                                Margin="0,8,0,0">
+                                                Margin="0,8,0,4">
                                         <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
                                                 CornerRadius="4" Padding="8" Margin="0,0,0,8">
                                             <TextBlock Text="{Binding Content}"
@@ -258,6 +260,7 @@
                                         </StackPanel>
                                     </StackPanel>
                                 </StackPanel>
+                                </Border>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
