@@ -7,6 +7,7 @@ namespace ClipVault.Views;
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _vm;
+    public MainViewModel ViewModel => _vm;
 
     public MainWindow(MainViewModel vm)
     {

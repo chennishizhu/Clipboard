@@ -53,6 +53,9 @@ public class TrayIcon : IDisposable
         var pauseItem = new MenuItem { Header = "暂停监听", IsCheckable = true };
         pauseItem.Click += (_, _) => App.Clipboard.IsPaused = pauseItem.IsChecked;
 
+        var clearItem = new MenuItem { Header = "全部清除" };
+        clearItem.Click += (_, _) => ClearAll();
+
         var exitItem = new MenuItem { Header = "退出" };
         exitItem.Click += (_, _) => ExitRequested?.Invoke();
 
@@ -61,6 +64,8 @@ public class TrayIcon : IDisposable
         menu.Items.Add(_darkModeItem);
         menu.Items.Add(settingsItem);
         menu.Items.Add(pauseItem);
+        menu.Items.Add(new Separator());
+        menu.Items.Add(clearItem);
         menu.Items.Add(new Separator());
         menu.Items.Add(exitItem);
         return menu;
@@ -98,6 +103,29 @@ public class TrayIcon : IDisposable
     {
         var win = new SettingsWindow();
         win.ShowDialog();
+    }
+
+    private void ClearAll()
+    {
+        Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, () =>
+        {
+            // 以主窗口为 owner，确保 MessageBox 不会因失焦而消失
+            _mainWindow.Show();
+            _mainWindow.Activate();
+
+            var result = MessageBox.Show(
+                _mainWindow,
+                "将删除所有非收藏、非置顶的记录，此操作不可撤销。\n\n确定要继续吗？",
+                "全部清除",
+                MessageBoxButton.OKCancel,
+                MessageBoxImage.Warning);
+
+            _mainWindow.Hide();
+
+            if (result != MessageBoxResult.OK) return;
+
+            _mainWindow.ViewModel.ClearNonFavoritedNonPinned();
+        });
     }
 
     public void Dispose() => _taskbarIcon.Dispose();

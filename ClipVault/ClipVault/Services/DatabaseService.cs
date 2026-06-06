@@ -172,7 +172,7 @@ public class DatabaseService : IDisposable
         using var cmd = _connection!.CreateCommand();
         cmd.CommandText = includeFavorites
             ? "DELETE FROM ClipItems;"
-            : "DELETE FROM ClipItems WHERE is_favorite = 0;";
+            : "DELETE FROM ClipItems WHERE is_favorite = 0 AND is_pinned = 0;";
         cmd.ExecuteNonQuery();
     }
 

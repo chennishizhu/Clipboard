@@ -152,6 +152,12 @@ public class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(EmptyMessage));
     }
 
+    public void ClearNonFavoritedNonPinned()
+    {
+        _db.ClearAll(includeFavorites: false);
+        Refresh();
+    }
+
     public void AddNewItem(string content, string type)
     {
         var item = new ClipItem
